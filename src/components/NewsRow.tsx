@@ -191,7 +191,6 @@ const NewsRow = ({ item, onFavoriteToggle, onPress, onSwipeLeft }: Props) => {
                     baseurl: item.source_baseurl,
                     logo_uri: item.logo_uri,
                   }}
-                  style={{ textAlign: "center" }}
                 />
               </View>
               <Text style={{ fontSize: 12, textAlign: "center" }}>

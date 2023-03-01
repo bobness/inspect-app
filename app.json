@@ -3,7 +3,7 @@
     "name": "Inspect",
     "slug": "inspect",
     "owner": "bobstark",
-    "version": "1.1.1",
+    "version": "1.1.2",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "splash": {
@@ -14,9 +14,7 @@
     "updates": {
       "fallbackToCacheTimeout": 0
     },
-    "assetBundlePatterns": [
-      "**/*"
-    ],
+    "assetBundlePatterns": ["**/*"],
     "plugins": [
       [
         "expo-notifications",
@@ -24,22 +22,39 @@
           "icon": "./assets/icon.png",
           "color": "#ffffff"
         }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "The app accesses your photos to let you share them with your friends."
+        }
+      ],
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "compileSdkVersion": 33,
+            "targetSdkVersion": 33,
+            "buildToolsVersion": "33.0.1",
+            "kotlinVersion": "1.6.10"
+          }
+        }
       ]
     ],
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "net.datagotchi.inspect",
       "buildNumber": "1",
-      "associatedDomains": [
-        "applinks:inspect.datagotchi.net"
-      ]
+      "associatedDomains": ["applinks:inspect.datagotchi.net"],
+      "jsEngine": "jsc"
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/icon.png",
         "backgroundColor": "#FFFFFF"
       },
-      "package": "net.datagotchi.inspect"
+      "package": "net.datagotchi.inspect",
+      "jsEngine": "hermes"
     },
     "description": "",
     "githubUrl": "https://github.com/bobness/inspect-app",

@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useState, useRef } from "react";
-import ImagePicker from "react-native-image-crop-picker";
 import RNFS from "react-native-fs";
+
+import ImagePicker from "expo-image-picker";
 
 import commonStyle from "../styles/CommonStyle";
 import {
@@ -223,15 +224,19 @@ export default function ProfileScreen(props: Props) {
   }, [profileData?.avatar_uri]);
 
   const handlePickPicture = useCallback(() => {
-    if (profileData && ImagePicker?.openPicker) {
-      ImagePicker.openPicker({
-        width: 200,
-        height: 200,
-        cropping: true,
-        mediaType: "photo",
-      }).then(async (image) => {
-        if (image.path) {
-          const base64 = await RNFS.readFile(image.path, "base64");
+    if (profileData) {
+      ImagePicker.launchImageLibraryAsync({
+        // width: 200,
+        // height: 200,
+        // cropping: true,
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      }).then(async (result) => {
+        if (
+          result.assets &&
+          result.assets.length === 1 &&
+          result.assets[0].base64
+        ) {
+          const base64 = await RNFS.readFile(result.assets[0].base64, "base64");
           setProfileData({
             ...profileData,
             avatar_uri: `data:image/png;base64,${base64}`,

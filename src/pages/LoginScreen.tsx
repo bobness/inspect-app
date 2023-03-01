@@ -24,7 +24,7 @@ const appId = "461371912646826";
 interface Props {
   navigation: any;
   onLoginCallback: (userObject: any) => void;
-  userObject: User;
+  // userObject: User; // TODO: enable setUser() from LoginScreen back to App
 }
 
 export default function LoginScreen({ navigation, onLoginCallback }: Props) {

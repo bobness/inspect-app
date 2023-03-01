@@ -14,7 +14,7 @@ import {
   useNavigationContainerRef,
 } from "@react-navigation/native";
 
-import ReceiveSharingIntent from "react-native-receive-sharing-intent";
+// import ReceiveSharingIntent from "react-native-receive-sharing-intent";
 import * as TaskManager from "expo-task-manager";
 import * as Notifications from "expo-notifications";
 import * as Device from "expo-device";
@@ -139,13 +139,14 @@ export default function App() {
       },
     });
   }, []);
-  ReceiveSharingIntent.getReceivedFiles(
-    handleShare,
-    (error: any) => {
-      console.error(error);
-    },
-    "net.datagotchi.inspect"
-  );
+  // FIXME: sharing intent is not working in Android
+  // ReceiveSharingIntent.getReceivedFiles(
+  //   handleShare,
+  //   (error: any) => {
+  //     console.error(error);
+  //   },
+  //   "net.datagotchi.inspect"
+  // );
 
   useEffect(() => {
     if (!user) {
