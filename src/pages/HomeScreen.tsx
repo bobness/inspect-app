@@ -37,7 +37,12 @@ export default function HomeScreen(props: Props) {
 
   useEffect(() => {
     if (error) {
-      alert("Error in getting unread news: " + error.toString());
+      // TODO: check an error code rather than message
+      if (error.message.includes("401")) {
+        return navigation.navigate("Login", {});
+      } else {
+        return alert("Error in getting unread news: " + error.toString());
+      }
     }
   }, [error]);
 
@@ -59,7 +64,7 @@ export default function HomeScreen(props: Props) {
 
   const handleFollow = useCallback((user_id: number) => {
     const postData = {
-      follower_id: user_id,
+      author_id: user_id,
     };
     followAuthor(postData).then(() => {
       handleAuthorRefresh();

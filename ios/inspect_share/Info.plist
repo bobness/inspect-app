@@ -8,12 +8,6 @@
       <dict>
         <key>NSExtensionActivationRule</key>
         <dict>
-          <key>NSExtensionActivationSupportsFileWithMaxCount</key>
-          <integer>100</integer>
-          <key>NSExtensionActivationSupportsImageWithMaxCount</key>
-          <integer>100</integer>
-          <key>NSExtensionActivationSupportsMovieWithMaxCount</key>
-          <integer>100</integer>
           <key>NSExtensionActivationSupportsText</key>
           <true/>
           <key>NSExtensionActivationSupportsWebURLWithMaxCount</key>
@@ -31,8 +25,8 @@
       <string>com.apple.share-services</string>
     </dict>
     <key>CFBundleVersion</key>
-    <string>1</string>
+    <string>18</string>
     <key>CFBundleShortVersionString</key>
-    <string>1.1.1</string>
+    <string>1.2.0</string>
   </dict>
 </plist>

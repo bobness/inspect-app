@@ -17,7 +17,7 @@ interface Props {
   snippet: SnippetType;
   comments?: Comment[];
   reactions?: Reaction[];
-  toggleCommentOverlay: (openState?: boolean, commentId?: number) => void;
+  toggleCommentOverlay: (openState: boolean, commentId?: number) => void;
   toggleEmojiOverlay: (openState?: boolean, snippetId?: number) => void;
   handleRefresh: () => void;
 }

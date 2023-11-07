@@ -2,7 +2,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import axios from "axios";
 
 const baseUrl = "https://inspect.datagotchi.net";
-// const baseUrl = "http://localhost:5000";
+// const baseUrl = "http://localhost:8888";
 // note: ssl doesn't work on localhost with axios + react native
 
 const instance = axios.create({
@@ -22,17 +22,5 @@ const removeToken = () => {
 };
 
 setToken();
-
-instance.interceptors.response.use(
-  (response) => response,
-  async (error) => {
-    const { status } = error.response;
-    if (status === 401) {
-      // await AsyncStorage.removeItem("@user");
-      await AsyncStorage.removeItem("@access_token");
-    }
-    throw error;
-  }
-);
 
 export { instance, setToken, removeToken };

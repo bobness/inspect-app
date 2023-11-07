@@ -11,9 +11,11 @@
       "ios": {
         "buildConfiguration": "Debug",
         "resourceClass": "m1-medium"
-      }
+      },
+      "channel": "development"
     },
     "preview": {
+      "channel": "staging",
       "distribution": "internal",
       "android": {
         "buildType": "apk"
@@ -23,6 +25,7 @@
       }
     },
     "production": {
+      "channel": "production",
       "ios": {
         "autoIncrement": "buildNumber",
         "resourceClass": "m1-medium"

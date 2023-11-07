@@ -71,6 +71,7 @@ export interface Summary {
   id?: number;
   url: string;
   title: string;
+  original_title: string;
   user_id: number;
   source_id: number;
   logo_uri: string;
@@ -82,7 +83,7 @@ export interface Summary {
   updated_at: string;
   comments: Comment[];
   reactions: Reaction[];
-  snippets: Snippet[];
+  snippets?: Snippet[];
   shares: Share[];
   author: User;
   is_watched?: boolean;
@@ -90,5 +91,5 @@ export interface Summary {
   author_id: number;
   followers: Follower[];
   flagged_by?: number;
-  is_favorited?: boolean;
+  is_public?: boolean;
 }

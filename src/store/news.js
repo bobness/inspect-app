@@ -44,6 +44,10 @@ const postComment = (commentData) => {
   return instance.post("/comments", commentData);
 };
 
+const deleteComment = (commentId) => {
+  return instance.delete(`/comments/${commentId}`);
+};
+
 const postReaction = (reactionData) => {
   return instance.post("/reactions", reactionData);
 };
@@ -76,6 +80,10 @@ const sendNotification = (data) => {
   return instance.post("/notification", data).then((res) => res.data);
 };
 
+const addToDigests = (data) => {
+  return instance.post("/digests", data).then((res) => res.data);
+}
+
 const getSource = (baseUrl) => {
   return instance.get(`/sources/${baseUrl}`).then((res) => res.data);
 };
@@ -90,14 +98,6 @@ const postShare = (summaryId, service, message) => {
     .then((res) => res.data);
 };
 
-const toggleSummaryFavorite = (summaryId, favorited) => {
-  if (favorited) {
-    return instance.post("/favorites", { summary_id: summaryId });
-  } else {
-    return instance.delete("/favorites/" + summaryId);
-  }
-};
-
 export {
   getUnreadNews,
   markAsRead,
@@ -107,12 +107,14 @@ export {
   getNewsById,
   createSummary,
   postComment,
+  deleteComment,
   postReaction,
   deleteSummary,
   getSuggestAuthors,
   followAuthor,
   unfollowAuthor,
   sendNotification,
+  addToDigests,
   updateSummary,
   getSource,
   createSource,
@@ -120,5 +122,4 @@ export {
   postShare,
   blockUser,
   unblockUser,
-  toggleSummaryFavorite,
 };

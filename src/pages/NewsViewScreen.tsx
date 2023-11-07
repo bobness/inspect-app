@@ -41,6 +41,7 @@ import {
 import commonStyle from "../styles/CommonStyle";
 import BottomToolbar from "../components/BottomToolbar";
 import {
+  addToDigests,
   blockUser,
   deleteSummary,
   followAuthor,
@@ -61,6 +62,7 @@ import Snippet from "../components/Snippet";
 import useCurrentUserContext from "../hooks/useCurrentUserContext";
 import VoiceInput from "../components/VoiceInput";
 import SourceLogo from "../components/SourceLogo";
+import { instance } from "../store/api";
 
 interface Props {
   route: {
@@ -80,7 +82,7 @@ export default function NewsViewScreen(props: Props) {
     setCurrentSummaryId,
   } = props;
   let richText: any = useRef(null);
-  const [newsData, setNewsData] = useState<Summary | undefined>();
+  const [newsData, setNewsData] = useState<Summary | undefined>(data);
   const [selectedCommentId, setSelectedCommentId] = useState<
     number | undefined
   >();
@@ -103,13 +105,11 @@ export default function NewsViewScreen(props: Props) {
   const currentUser = useCurrentUserContext();
 
   const handleRefresh = async () => {
-    setLoading(true);
     if (data.id) {
       await getNewsDataById(data.id);
     } else if (data.uid) {
       await getNewsDataByUid(data.uid);
     }
-    setLoading(false);
   };
 
   useEffect(() => {
@@ -120,18 +120,20 @@ export default function NewsViewScreen(props: Props) {
 
   const getNewsDataById = (id: number) => {
     setLoading(true);
-    return getNewsById(id).then((result) => {
-      setNewsData(result);
-      setLoading(false);
-    });
+    return getNewsById(id)
+      .then((result) => {
+        setNewsData(result);
+      })
+      .finally(() => setLoading(false));
   };
 
   const getNewsDataByUid = (uid: string) => {
     setLoading(true);
-    return getNewsByUid(uid).then((result) => {
-      setNewsData(result);
-      setLoading(false);
-    });
+    return getNewsByUid(uid)
+      .then((result) => {
+        setNewsData(result);
+      })
+      .finally(() => setLoading(false));
   };
 
   useEffect(() => {
@@ -139,8 +141,9 @@ export default function NewsViewScreen(props: Props) {
   }, []);
 
   useEffect(() => {
-    // TODO: add logic to possibly not refresh when navigating here from HomeScreen because `data` already contains everything
-    handleRefresh();
+    if (!newsData) {
+      handleRefresh();
+    }
   }, [data]);
 
   useEffect(() => {
@@ -193,16 +196,12 @@ export default function NewsViewScreen(props: Props) {
     return responseArray;
   }, [topReactionsMap]);
 
-  const toggleCommentOverlay = (openState?: boolean, snippetId?: number) => {
+  const toggleCommentOverlay = (openState: boolean, snippetId?: number) => {
     if (openState === false || visibleCommentModal) {
       setCommentText("");
       setSelectedCommentId(undefined);
     }
-    if (openState !== undefined) {
-      setVisibleCommentModal(openState);
-    } else {
-      setVisibleCommentModal(!visibleCommentModal);
-    }
+    setVisibleCommentModal(openState);
     if (snippetId) {
       setSelectedSnippetId(snippetId);
     }
@@ -240,7 +239,7 @@ export default function NewsViewScreen(props: Props) {
     };
     postComment(commentData).then(() => {
       toggleCommentOverlay(false);
-      getNewsDataById(data.id);
+      handleRefresh();
     });
   };
 
@@ -291,7 +290,7 @@ export default function NewsViewScreen(props: Props) {
 
   const handleFollow = useCallback((user_id: number) => {
     const postData = {
-      follower_id: user_id,
+      author_id: user_id,
     };
     followAuthor(postData).then(() => {
       handleRefresh();
@@ -327,6 +326,18 @@ export default function NewsViewScreen(props: Props) {
         }
       );
     }
+  };
+
+  const handleFollowerShare = async (summary: Summary) => {
+    await updateSummary(summary.id, { is_public: true });
+    await addToDigests({
+      notification_title: `A summary was created${
+        currentUser?.username ? ` by ${currentUser.username}` : ""
+      }!`,
+      summary_title: summary.title,
+      summary_id: summary.id,
+    });
+    navigation.navigate("Home");
   };
 
   const handleEmojiSelect = async (emoji: string, snippetId?: number) => {
@@ -372,7 +383,7 @@ export default function NewsViewScreen(props: Props) {
   }, [newsData, newSnippetValue]);
 
   const followerIds = useMemo(() => {
-    if (newsData) {
+    if (newsData?.followers) {
       return newsData.followers.map((f) => Number(f.follower_id));
     }
   }, [newsData]);
@@ -415,7 +426,6 @@ export default function NewsViewScreen(props: Props) {
         {newsData && (
           <ScrollView
             style={{
-              flex: 1,
               padding: 10,
             }}
             refreshControl={
@@ -425,6 +435,76 @@ export default function NewsViewScreen(props: Props) {
               flexDirection: "column",
             }}
           >
+            {!newsData?.is_public && (
+              <>
+                <View
+                  style={{ flex: 1, flexDirection: "column", marginBottom: 5 }}
+                >
+                  <Text style={{ flex: 1, color: "green" }}>
+                    Summary successfully created! {"\n\n"}
+                    After reading the article, you should set a new title that
+                    explains what it's actually about, add a snippet from it,
+                    your reaction, and a comment.{"\n\n"}
+                  </Text>
+                </View>
+                <CheckBox
+                  title="Edited Title - so it's clear what the article is about"
+                  checked={newsData.title !== newsData.original_title}
+                  disabled={true}
+                  style={{
+                    maxHeight: 20,
+                    width: "100%",
+                  }}
+                />
+                <CheckBox
+                  title="Added a snippet - as evidence for what the article is about"
+                  checked={newsData.snippets && newsData.snippets.length > 0}
+                  disabled={true}
+                  style={{
+                    maxHeight: 20,
+                    width: "100%",
+                  }}
+                />
+                <CheckBox
+                  title="Reacted - to make users care"
+                  checked={newsData.reactions.length > 0}
+                  disabled={true}
+                  style={{
+                    maxHeight: 20,
+                    width: "100%",
+                  }}
+                />
+                <CheckBox
+                  title="Commented - to make it clear WHY users should care"
+                  checked={newsData.comments.length > 0}
+                  disabled={true}
+                  style={{
+                    maxHeight: 20,
+                    width: "100%",
+                  }}
+                />
+                {/* FIXME: doesn't show up -- it's on the right, not below */}
+                {newsData.title !== newsData.original_title &&
+                  newsData.snippets &&
+                  newsData.snippets.length > 0 &&
+                  newsData.reactions.length > 0 &&
+                  newsData.comments.length > 0 && (
+                    <View style={{ flex: 1 }}>
+                      <Text>
+                        {"\n\n"}
+                        When you're done:
+                      </Text>
+                      <Button
+                        title="Click here to share with your followers"
+                        titleStyle={{ color: "white" }}
+                        buttonStyle={{ backgroundColor: "green" }}
+                        onPress={() => handleFollowerShare(newsData)}
+                      />
+                    </View>
+                  )}
+              </>
+            )}
+
             <View
               style={{
                 flexShrink: 1,
@@ -433,16 +513,15 @@ export default function NewsViewScreen(props: Props) {
                 width: "100%",
               }}
             >
-              <View style={{ flex: 1 }}>
-                {/* <Icon
+              {/* <View style={{ flex: 1 }}>
+              <Icon
                   name="file-alt"
                   type="font-awesome-5"
                   color="black"
                   size={50}
                   tvParallaxProperties={undefined}
-                /> */}
-              </View>
-
+                />
+              </View> */}
               <TouchableOpacity
                 onPress={() => {
                   navigation.navigate("AuthorView", {
@@ -478,7 +557,6 @@ export default function NewsViewScreen(props: Props) {
                   </Text>
                 </View>
               </TouchableOpacity>
-
               <View style={{ flex: 1 }}>
                 {newsData &&
                   currentUser &&
@@ -604,14 +682,16 @@ export default function NewsViewScreen(props: Props) {
                 alignItems: "center",
               }}
             >
-              <Text style={{ color: "gray" }}>
-                {newsData.updated_at &&
-                  newsData.updated_at === newsData.created_at &&
-                  `Created ${convertDate(newsData.updated_at)}`}
-                {newsData.updated_at &&
-                  newsData.updated_at !== newsData.created_at &&
-                  `Updated ${convertDate(newsData.updated_at)}`}
-              </Text>
+              <View style={{ flex: 1, flexDirection: "column" }}>
+                <Text style={{ color: "gray" }}>
+                  Created {convertDate(newsData.created_at)}
+                </Text>
+                <Text style={{ color: "gray" }}>
+                  {newsData.updated_at &&
+                    newsData.updated_at !== newsData.created_at &&
+                    `Updated ${convertDate(newsData.updated_at)}`}
+                </Text>
+              </View>
               <CheckBox
                 title="Watch"
                 checked={watchIsEnabled}
@@ -641,6 +721,7 @@ export default function NewsViewScreen(props: Props) {
                     <CommentRow
                       item={comment}
                       navigation={navigation}
+                      refreshFunc={handleRefresh}
                       key={`comment #${comment.id}`}
                     />
                   ))}
@@ -676,7 +757,7 @@ export default function NewsViewScreen(props: Props) {
                   }}
                 >
                   <IonIcon name="share-social" /> Share (
-                  {newsData.shares.length})
+                  {newsData.shares?.length})
                 </Text>
               </View>
             </View>
@@ -728,12 +809,13 @@ export default function NewsViewScreen(props: Props) {
                   style={{ flex: 1, height: 1, backgroundColor: "black" }}
                 />
               </View>
-              {newsData.snippets.length === 0 && (
-                <Text style={{ textAlign: "center", padding: 10 }}>
-                  (None yet added)
-                </Text>
-              )}
-              {newsData.snippets.map((snippet) => (
+              {!newsData.snippets ||
+                (newsData.snippets.length === 0 && (
+                  <Text style={{ textAlign: "center", padding: 10 }}>
+                    (None yet added)
+                  </Text>
+                ))}
+              {newsData.snippets?.map((snippet) => (
                 <Snippet
                   snippet={snippet}
                   comments={newsData.comments.filter(

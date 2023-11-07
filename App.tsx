@@ -28,12 +28,20 @@ import NewsViewScreen from "./src/pages/NewsViewScreen";
 import AuthorViewScreen from "./src/pages/AuthorViewScreen";
 import ProfileScreen from "./src/pages/ProfileScreen";
 import { updateUserExpoToken } from "./src/store/auth";
-import SummaryScreen from "./src/pages/SummaryScreen";
 import { Subscription } from "expo-modules-core";
 import { instance } from "./src/store/api";
 import { AuthUser, User } from "./src/types";
 import CurrentUserContext from "./src/contexts/CurrentUserContext";
 import AboutScreen from "./src/pages/AboutScreen";
+import {
+  createSource,
+  createSummary,
+  getSource,
+  updateSummary,
+} from "./src/store/news";
+import { cleanUrl, parseBaseUrl } from "./src/util";
+import usePageTitle from "./src/hooks/usePageTitle";
+import { useSharedValue } from "react-native-reanimated";
 
 const Stack: any = createNativeStackNavigator();
 
@@ -50,7 +58,7 @@ Notifications.setNotificationHandler({
 TaskManager.defineTask(
   BACKGROUND_NOTIFICATION_TASK,
   ({ data, error, executionInfo }) => {
-    console.log("Received a notification in the background!");
+    // console.log("Received a notification in the background!");
     // Do something with the notification data
   }
 );
@@ -68,6 +76,7 @@ interface RouteObejct {
 }
 
 export default function App() {
+  // TODO: figure out how to type this
   const navigationRef = useNavigationContainerRef();
   const [user, setUser] = useState<AuthUser | undefined>();
   const [notification, setNotification] = useState<Notification | undefined>();
@@ -125,24 +134,68 @@ export default function App() {
     (response) => response,
     (error) => {
       if (error?.response?.status === 401) {
-        setDesiredRoute({ path: "Login" });
+        AsyncStorage.removeItem("@access_token");
+        return setDesiredRoute({ path: "Login" });
       }
       return error;
     }
   );
 
-  const handleShare = useCallback(([shareObject]: ShareObject[]) => {
-    setDesiredRoute({
-      path: "CreateSummary",
-      args: {
-        data: shareObject,
-      },
-    });
-  }, []);
+  const processSharedUrl = async (url: string) => {
+    const cleanedUrl = cleanUrl(url);
+    const baseUrl = parseBaseUrl(url);
+    if (baseUrl && cleanedUrl) {
+      let source = await getSource(baseUrl);
+      if (!source) {
+        source = await createSource(baseUrl);
+      }
+      const title = await usePageTitle(cleanedUrl);
+      const newSummary = await createSummary({
+        url: cleanedUrl,
+        title,
+        source_id: source.id,
+      });
+      // @ts-expect-error not sure how to type navigationRef
+      navigationRef.navigate("NewsView", { data: newSummary });
+    }
+  };
+
+  const urlRegex = useMemo(() => RegExp(/https?:\/\S+/), []);
+
+  let currentShare = useSharedValue("");
   ReceiveSharingIntent.getReceivedFiles(
-    handleShare,
+    async ([shareObject]: ShareObject[]) => {
+      if (currentSummaryId && shareObject.text) {
+        if (!currentShare.value) {
+          currentShare.value = shareObject.text;
+          await updateSummary(currentSummaryId, {
+            snippets: [shareObject.text],
+          });
+          setCurrentSummaryId(undefined);
+          // @ts-expect-error not sure how to type navigationRef
+          navigationRef.navigate("NewsView", { data: { id: newSummary.id } });
+        }
+      } else {
+        if (shareObject.weblink) {
+          if (!currentShare.value) {
+            currentShare.value = shareObject.weblink;
+            processSharedUrl(shareObject.weblink);
+          }
+        } else if (shareObject.text) {
+          // Google News returns the url in the text object, not weblink
+          const match = shareObject.text.match(urlRegex);
+          if (match) {
+            if (!currentShare.value) {
+              currentShare.value = match[0];
+              processSharedUrl(match[0]);
+            }
+          }
+        }
+      }
+      ReceiveSharingIntent.clearReceivedFiles();
+    },
     (error: any) => {
-      console.error(error);
+      console.error(`Error sharing into Inspect: ${error}`);
     },
     "net.datagotchi.inspect"
   );
@@ -180,6 +233,7 @@ export default function App() {
     // TODO: addNotificationReceivedListener may not be necessary; I don't even use the resulting 'notification' object
     notificationListener.current =
       Notifications.addNotificationReceivedListener((notification) => {
+        // @ts-expect-error not sure how to fix: Argument of type 'Notification' is not assignable to parameter of type 'SetStateAction<Notification | undefined>'
         setNotification(notification);
       });
 
@@ -209,6 +263,7 @@ export default function App() {
   const handleOnLogin = (userObject: AuthUser) => {
     AsyncStorage.setItem("@user", JSON.stringify(userObject));
     setUser(userObject);
+    // @ts-expect-error not sure how to type navigationRef
     navigationRef.navigate("Home");
   };
 
@@ -221,8 +276,6 @@ export default function App() {
       setDesiredRoute({ path: "NewsView", args: { data: { uid } } });
     }
   }, [deepLinkUrl]);
-
-  // ReceiveSharingIntent.clearReceivedFiles();
 
   useEffect(() => {
     if (
@@ -299,11 +352,6 @@ export default function App() {
               <ProfileScreen {...props} setCurrentUser={setUser} />
             )}
           </Stack.Screen>
-          <Stack.Screen name="CreateSummary" options={{ headerShown: false }}>
-            {(props: any) => (
-              <SummaryScreen {...props} currentSummaryId={currentSummaryId} />
-            )}
-          </Stack.Screen>
           <Stack.Screen
             name="About"
             component={AboutScreen}
@@ -326,6 +374,7 @@ async function registerForPushNotificationsAsync() {
       const { status } = await Notifications.requestPermissionsAsync();
       finalStatus = status;
     }
+    // TODO: put in a loop until it is granted
     if (finalStatus !== "granted") {
       alert("Failed to get push token for push notification");
       return;

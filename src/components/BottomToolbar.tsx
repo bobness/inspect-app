@@ -1,17 +1,48 @@
-import React, { useCallback, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { View, TouchableOpacity, SafeAreaView, Text } from "react-native";
 import { Button, Input, Overlay } from "react-native-elements";
 import FontAwesomeIcon from "react-native-vector-icons/FontAwesome";
+import { createSource, createSummary, getSource } from "../store/news";
+import usePageTitle from "../hooks/usePageTitle";
+import { Source } from "../types";
+import { parseBaseUrl } from "../util";
 
 export default function BottomToolbar({ navigation }: any) {
+  const [loading, setLoading] = useState(false);
+  const [source, setSource] = useState<Source | undefined>();
   const [summaryUrlModalVisible, setSummaryUrlModalVisible] = useState(false);
   const [summaryUrl, setSummaryUrl] = useState<string | undefined>();
 
-  const doCreateSummary = useCallback(() => {
-    setSummaryUrlModalVisible(false);
-    setTimeout(() => setSummaryUrl(undefined), 300);
-    navigation.navigate("CreateSummary", { data: { weblink: summaryUrl } });
+  const doCreateSummary = useCallback(async () => {
+    if (summaryUrl) {
+      setLoading(true);
+      const baseUrl = parseBaseUrl(summaryUrl);
+      await getSource(baseUrl).then((data) => {
+        if (data) {
+          setSource(data);
+        } else {
+          return createSource(baseUrl).then((newSource) => {
+            setSource(newSource);
+          });
+        }
+      });
+    }
   }, [summaryUrl]);
+
+  useEffect(() => {
+    if (summaryUrl && source?.id) {
+      usePageTitle(summaryUrl).then((title) => {
+        createSummary({ url: summaryUrl, title, source_id: source.id }).then(
+          (newSummary) => {
+            setLoading(false);
+            setSummaryUrlModalVisible(false);
+            setSummaryUrl(undefined);
+            navigation.navigate("NewsView", { data: newSummary });
+          }
+        );
+      });
+    }
+  }, [summaryUrl, source]);
 
   const validUrlRegex = useMemo(() => RegExp("https?://.*"), []);
   const validUrl = useCallback(
@@ -102,14 +133,14 @@ export default function BottomToolbar({ navigation }: any) {
               onChangeText={(text: string) => {
                 setSummaryUrl(text);
               }}
-              autoCompleteType={undefined}
+              autoComplete="off"
               autoCapitalize="none"
               autoCorrect={false}
             />
             <Button
               title="Create Summary"
               onPress={doCreateSummary}
-              disabled={!summaryUrl || !validUrl(summaryUrl)}
+              disabled={!summaryUrl || !validUrl(summaryUrl) || loading}
             />
           </View>
         </SafeAreaView>

@@ -5,6 +5,8 @@ import { Avatar, ListItem, Text } from "react-native-elements";
 
 import { Comment } from "../types";
 import { convertDate } from "../util";
+import { deleteComment } from "../store/news";
+import useCurrentUserContext from "../hooks/useCurrentUserContext";
 
 const AVATAR_WIDTH = 34;
 const TAB_SIZE = 20;
@@ -13,9 +15,17 @@ const LIST_PADDING = 2 * 10;
 interface Props {
   item: Comment;
   navigation: any;
+  refreshFunc: () => void;
 }
 
-const CommentRow = ({ item, navigation }: Props) => {
+const CommentRow = ({ item, navigation, refreshFunc }: Props) => {
+  const currentUser = useCurrentUserContext();
+
+  const handleDeleteComment = async (id: number) => {
+    await deleteComment(id);
+    refreshFunc();
+  };
+
   return (
     <View
       style={{ flex: 1, flexDirection: "column", marginTop: 10 }}
@@ -82,6 +92,14 @@ const CommentRow = ({ item, navigation }: Props) => {
       <View style={{ alignItems: "flex-end", marginTop: 5 }}>
         <Text style={{ fontSize: 11, color: "gray" }}>
           {convertDate(item.created_at)}
+          {item.user_id == currentUser?.id && (
+            <Text
+              style={{ color: "red" }}
+              onPress={() => handleDeleteComment(item.id)}
+            >
+              [x]
+            </Text>
+          )}
         </Text>
       </View>
     </View>

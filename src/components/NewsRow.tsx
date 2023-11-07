@@ -1,14 +1,18 @@
 import React, { useCallback } from "react";
 import { View } from "react-native";
 import { Avatar, Icon, ListItem, Text } from "react-native-elements";
-import { Gesture, GestureDetector, State } from "react-native-gesture-handler";
+import {
+  Gesture,
+  GestureDetector,
+  GestureHandlerRootView,
+  State,
+} from "react-native-gesture-handler";
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
 } from "react-native-reanimated";
 import FontistoIcon from "react-native-vector-icons/Fontisto";
 import IonIcon from "react-native-vector-icons/Ionicons";
-import { toggleSummaryFavorite } from "../store/news";
 
 import { Summary } from "../types";
 import { convertDate } from "../util";
@@ -34,8 +38,8 @@ const NewsRow = ({ item, onFavoriteToggle, onPress, onSwipeLeft }: Props) => {
       width: Math.abs(offset.value.x),
       borderColor: "gray",
       borderWidth: Math.abs(offset.value.x) >= 2 ? 1 : 0,
-      left: offset.value.x > 0 ? -offset.value.x : "auto",
-      right: offset.value.x < 0 ? offset.value.x : "auto",
+      left: offset.value.x > 0 ? -offset.value.x : ("auto" as "auto"),
+      right: offset.value.x < 0 ? offset.value.x : ("auto" as "auto"),
       position: "absolute" as const,
       top: -1,
       bottom: -1,
@@ -83,7 +87,7 @@ const NewsRow = ({ item, onFavoriteToggle, onPress, onSwipeLeft }: Props) => {
         };
         const xMovement = lastPosition.x - startPosition.value.x;
         const slope = (lastPosition.y - startPosition.value.y) / xMovement;
-        if (!item.is_favorited && slope > -Infinity && Math.abs(slope) <= 1) {
+        if (item.is_public && slope > -Infinity && Math.abs(slope) <= 1) {
           manager.activate();
         } else {
           manager.fail();
@@ -116,12 +120,8 @@ const NewsRow = ({ item, onFavoriteToggle, onPress, onSwipeLeft }: Props) => {
         }
       });
 
-  const toggleFavorite = (item: Summary) =>
-    toggleSummaryFavorite(item.id, !item.is_favorited).then(() => {
-      onFavoriteToggle();
-    });
   return (
-    <>
+    <GestureHandlerRootView>
       <GestureDetector
         gesture={horizontalPanGesture(item)}
         key={`summary #${item.id}`}
@@ -140,14 +140,9 @@ const NewsRow = ({ item, onFavoriteToggle, onPress, onSwipeLeft }: Props) => {
             }}
             onPress={onPress}
           >
-            <Icon
-              name="star"
-              type="font-awesome-5"
-              color={item.is_favorited ? "yellow" : "black"}
-              solid={item.is_favorited ? true : false}
-              onPress={() => toggleFavorite(item)}
-              size={30}
-            />
+            {!item.is_public && (
+              <Icon name="wrench" type="font-awesome-5" size={30} color="red" />
+            )}
             <View
               style={{
                 flex: 1,
@@ -271,7 +266,7 @@ const NewsRow = ({ item, onFavoriteToggle, onPress, onSwipeLeft }: Props) => {
           </ListItem>
         </Animated.View>
       </GestureDetector>
-    </>
+    </GestureHandlerRootView>
   );
 };
 

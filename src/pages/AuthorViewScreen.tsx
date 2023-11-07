@@ -64,7 +64,7 @@ export default function AuthorViewScreen(props: any) {
 
   const handleFollow = (user_id: number) => {
     const postData = {
-      follower_id: user_id,
+      author_id: user_id,
     };
     followAuthor(postData).then(() => {
       handleRefresh();
